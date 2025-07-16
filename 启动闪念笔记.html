@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>启动闪念笔记</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 60px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 36px;
+        }
+        .status {
+            font-size: 18px;
+            color: #666;
+            margin: 30px 0;
+            line-height: 1.6;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .loading {
+            display: none;
+            margin: 30px 0;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #e74c3c;
+            margin: 20px 0;
+            display: none;
+        }
+        .instructions {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+            display: none;
+        }
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 10px 0;
+            color: #666;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ 闪念笔记</h1>
+        <div class="status" id="status">
+            正在检查服务器状态...
+        </div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+        </div>
+        <div class="error" id="error"></div>
+        <div id="actions" style="display: none;">
+            <a href="#" class="button" id="openApp">打开闪念笔记</a>
+        </div>
+        <div class="instructions" id="instructions">
+            <h3>首次使用说明：</h3>
+            <ol>
+                <li>打开终端应用（在 Launchpad 或应用程序/实用工具 中）</li>
+                <li>复制并运行以下命令：<br>
+                    <code>cd "/Users/yammaku/Documents/Claude Code Projects/闪念笔记" && ./start_web_server.sh</code>
+                </li>
+                <li>等待服务器启动后，刷新此页面</li>
+                <li>以后每次使用前都需要先启动服务器</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+        const actionsEl = document.getElementById('actions');
+        const instructionsEl = document.getElementById('instructions');
+        const openAppBtn = document.getElementById('openApp');
+        
+        let serverUrl = 'http://localhost:8181';
+        let checkInterval;
+        let checkCount = 0;
+        const maxChecks = 10;
+        
+        async function checkServer() {
+            try {
+                const response = await fetch(serverUrl + '/health', {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        async function startChecking() {
+            loadingEl.style.display = 'block';
+            statusEl.textContent = '正在连接到服务器...';
+            
+            checkInterval = setInterval(async () => {
+                checkCount++;
+                
+                const isRunning = await checkServer();
+                
+                if (isRunning) {
+                    clearInterval(checkInterval);
+                    loadingEl.style.display = 'none';
+                    statusEl.textContent = '✅ 服务器已运行，准备就绪！';
+                    actionsEl.style.display = 'block';
+                    instructionsEl.style.display = 'none';
+                    
+                    // 自动跳转
+                    setTimeout(() => {
+                        window.location.href = serverUrl;
+                    }, 1000);
+                } else if (checkCount >= maxChecks) {
+                    clearInterval(checkInterval);
+                    loadingEl.style.display = 'none';
+                    statusEl.textContent = '⚠️ 服务器未运行';
+                    errorEl.textContent = '请先启动服务器';
+                    errorEl.style.display = 'block';
+                    instructionsEl.style.display = 'block';
+                }
+            }, 1000);
+        }
+        
+        openAppBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = serverUrl;
+        });
+        
+        // 开始检查
+        startChecking();
+        
+        // 点击刷新
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'CODE') {
+                e.target.style.background = '#d6d8db';
+                setTimeout(() => {
+                    e.target.style.background = '#e9ecef';
+                }, 200);
+            }
+        });
+    </script>
+</body>
+</html>

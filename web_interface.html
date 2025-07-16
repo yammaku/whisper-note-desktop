@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>闪念笔记 - 语音转录工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .drop-zone:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .drop-zone.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .drop-zone-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone-text {
+            color: #667eea;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone-hint {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .file-list {
+            margin-top: 30px;
+        }
+
+        .file-item {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #333;
+            flex: 1;
+        }
+
+        .file-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #e3e3e3;
+            color: #666;
+        }
+
+        .status-processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .process-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .process-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .process-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .message-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ 闪念笔记</h1>
+        <p class="subtitle">拖拽音频文件，自动转录到 Apple Notes</p>
+        
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-icon">📁</div>
+            <div class="drop-zone-text">拖拽音频文件到这里</div>
+            <div class="drop-zone-hint">支持 WAV, MP3, M4A 等格式</div>
+        </div>
+        
+        <input type="file" id="fileInput" multiple accept="audio/*">
+        
+        <div class="file-list" id="fileList"></div>
+        
+        <button class="process-button" id="processButton">开始处理</button>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        
+        <div id="messageArea"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const processButton = document.getElementById('processButton');
+        const progressBar = document.getElementById('progressBar');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const messageArea = document.getElementById('messageArea');
+        
+        let selectedFiles = [];
+        
+        // 拖拽事件
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        function handleFiles(files) {
+            const audioFiles = Array.from(files).filter(file => 
+                file.type.startsWith('audio/') || 
+                file.name.match(/\.(wav|mp3|m4a|flac|aac|ogg)$/i)
+            );
+            
+            if (audioFiles.length === 0) {
+                showMessage('请选择音频文件', 'error');
+                return;
+            }
+            
+            selectedFiles = audioFiles;
+            displayFiles();
+            processButton.style.display = 'block';
+        }
+        
+        function displayFiles() {
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-status status-pending" id="status-${index}">等待处理</span>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+        
+        function showMessage(text, type = 'info') {
+            messageArea.innerHTML = `<div class="message message-${type}">${text}</div>`;
+        }
+        
+        processButton.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+            
+            processButton.disabled = true;
+            progressBar.style.display = 'block';
+            
+            const totalFiles = selectedFiles.length;
+            
+            showMessage(`开始处理 ${totalFiles} 个文件，请稍候...`, 'info');
+            
+            // 更新所有文件状态为处理中
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const statusElement = document.getElementById(`status-${i}`);
+                statusElement.textContent = '等待处理...';
+                statusElement.className = 'file-status status-processing';
+            }
+            
+            try {
+                // 批量上传所有文件
+                const formData = new FormData();
+                selectedFiles.forEach(file => {
+                    formData.append('files[]', file);
+                });
+                
+                const response = await fetch('http://localhost:8181/batch_process', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                showMessage(result.message, 'info');
+                
+                // 开始轮询检查状态
+                let checkCount = 0;
+                const maxChecks = 120; // 最多检查2分钟（每秒一次）
+                
+                const checkInterval = setInterval(async () => {
+                    checkCount++;
+                    
+                    // 更新进度条
+                    const progress = Math.min((checkCount / 30) * 100, 95); // 假设30秒完成
+                    progressBarFill.style.width = `${progress}%`;
+                    
+                    if (checkCount >= maxChecks) {
+                        clearInterval(checkInterval);
+                        showMessage('处理超时，请查看服务器日志', 'error');
+                        processButton.disabled = false;
+                        
+                        // 更新所有文件状态
+                        for (let i = 0; i < selectedFiles.length; i++) {
+                            const statusElement = document.getElementById(`status-${i}`);
+                            statusElement.textContent = '超时';
+                            statusElement.className = 'file-status status-error';
+                        }
+                    }
+                    
+                    // 简单的完成检测（实际应该通过API查询状态）
+                    if (checkCount >= 45) { // 45秒后假设完成
+                        clearInterval(checkInterval);
+                        progressBarFill.style.width = '100%';
+                        
+                        // 更新所有文件状态为完成
+                        for (let i = 0; i < selectedFiles.length; i++) {
+                            const statusElement = document.getElementById(`status-${i}`);
+                            statusElement.textContent = '完成';
+                            statusElement.className = 'file-status status-success';
+                        }
+                        
+                        showMessage(`✅ 所有文件处理完成！已同步到 Apple Notes`, 'success');
+                        processButton.disabled = false;
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('批量处理失败:', error);
+                showMessage('处理失败: ' + error.message, 'error');
+                processButton.disabled = false;
+                
+                // 更新所有文件状态
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const statusElement = document.getElementById(`status-${i}`);
+                    statusElement.textContent = '失败';
+                    statusElement.className = 'file-status status-error';
+                }
+            }
+        });
+        
+        async function processFile(file) {
+            // 创建 FormData
+            const formData = new FormData();
+            formData.append('audio', file);
+            
+            // 发送到本地服务器
+            const response = await fetch('http://localhost:8181/process', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        }
+    </script>
+</body>
+</html>

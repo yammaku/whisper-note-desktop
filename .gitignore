@@ -1,0 +1,46 @@
+# API Keys and Configs
+config/api_key.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+web_server.log
+
+# Temporary files
+temp/
+*.tmp
+*.temp
+
+# Backup files
+Voice Recordings Backup/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Audio files (privacy)
+*.m4a
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+
+# Uploads
+uploads/
