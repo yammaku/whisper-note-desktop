@@ -307,7 +307,8 @@ class VoiceToNotesWorkflow:
         
         # 5. 更新Apple Notes
         print("\n开始更新Apple Notes...")
-        for result in all_results:
+        # 反转结果列表，使最早的在最上面
+        for result in reversed(all_results):
             self.append_to_apple_notes(
                 result['note_title'],
                 result['compressed_audio'],
