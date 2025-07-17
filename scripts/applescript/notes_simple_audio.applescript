@@ -68,8 +68,17 @@ on run argv
         set audioFilePath to item 3 of argv
         set textContent to item 4 of argv
         
-        -- 获取音频文件名
-        set audioFileName to do shell script "basename " & quoted form of audioFilePath
+        -- 检查audioFilePath是否包含自定义文件名（格式：路径|文件名）
+        if audioFilePath contains "|" then
+            set AppleScript's text item delimiters to "|"
+            set pathParts to text items of audioFilePath
+            set audioFilePath to item 1 of pathParts
+            set audioFileName to item 2 of pathParts
+            set AppleScript's text item delimiters to ""
+        else
+            -- 获取音频文件名
+            set audioFileName to do shell script "basename " & quoted form of audioFilePath
+        end if
         
         tell application "Notes"
             set foundNote to missing value
@@ -108,6 +117,9 @@ on run argv
                     -- 构建新内容：标题 + 新内容 + 原有内容
                     set newContent to titlePart & "<br>"
                     
+                    -- 添加文件名作为第一行
+                    set newContent to newContent & "<p><strong>" & audioFileName & "</strong></p>"
+                    
                     -- 添加转录文本（不添加音频链接）
                     set newContent to newContent & "<p>" & textContent & "</p>"
                     
@@ -119,6 +131,7 @@ on run argv
                 else
                     -- 如果找不到标题，就按原来的方式append到末尾
                     set newContent to currentBody & "<br>"
+                    set newContent to newContent & "<p><strong>" & audioFileName & "</strong></p>"
                     set newContent to newContent & "<p>" & textContent & "</p>"
                     set newContent to newContent & "<div>####</div>"
                 end if

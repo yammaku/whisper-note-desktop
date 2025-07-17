@@ -194,7 +194,7 @@ class VoiceToNotesWorkflow:
             print(f"✗ 错误: {str(e)}")
             return False
     
-    def append_to_apple_notes(self, note_title: str, audio_path: str, transcript: str):
+    def append_to_apple_notes(self, note_title: str, audio_path: str, transcript: str, backup_filename: str = None):
         """
         将音频和转录文本添加到Apple Notes
         """
@@ -205,13 +205,21 @@ class VoiceToNotesWorkflow:
         # 处理文本中的特殊字符
         escaped_transcript = transcript.replace('"', '\\"').replace('\n', '<br>')
         
+        # 如果提供了备份文件名，使用它；否则从audio_path提取
+        if backup_filename:
+            # 使用备份文件名，但仍传递原始路径给AppleScript（为了兼容性）
+            # 我们将在传递给AppleScript时使用特殊格式：路径|文件名
+            audio_info = f"{audio_path}|{backup_filename}"
+        else:
+            audio_info = audio_path
+        
         # 使用新的脚本，传递完整的音频文件路径
         cmd = [
             'osascript',
             str(PROJECT_ROOT / 'scripts' / 'applescript' / 'notes_simple_audio.applescript'),
             'append_with_audio',
             note_title,
-            audio_path,  # 传递完整路径，不只是文件名
+            audio_info,  # 传递路径信息（可能包含自定义文件名）
             escaped_transcript
         ]
         
@@ -303,7 +311,8 @@ class VoiceToNotesWorkflow:
             self.append_to_apple_notes(
                 result['note_title'],
                 result['compressed_audio'],
-                result['transcript']
+                result['transcript'],
+                result.get('backup_filename')  # 传递备份文件名
             )
         
         print("\n✓ 所有处理完成！")
@@ -380,7 +389,8 @@ class VoiceToNotesWorkflow:
                 'note_title': note_title,
                 'compressed_audio': '',  # 不再需要，因为已删除
                 'transcript': transcript,
-                'date': date
+                'date': date,
+                'backup_filename': backup_audio_path.name  # 添加备份后的文件名
             }
             
         except Exception as e:
