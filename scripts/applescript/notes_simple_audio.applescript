@@ -48,10 +48,10 @@ on run argv
                         set targetFolder to make new folder at captureFolder with properties {name:"閃念筆記"}
                     end try
                     
-                    set newNote to make new note at targetFolder with properties {name:noteTitle, body:"<h1>" & noteTitle & "</h1><br>"}
+                    set newNote to make new note at targetFolder with properties {name:noteTitle, body:""}
                 on error errMsg
                     -- 如果还是失败，在默认位置创建
-                    set newNote to make new note with properties {name:noteTitle, body:"<h1>" & noteTitle & "</h1><br>"}
+                    set newNote to make new note with properties {name:noteTitle, body:""}
                 end try
                 return "created"
             else
